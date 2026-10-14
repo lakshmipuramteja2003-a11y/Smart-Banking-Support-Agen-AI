@@ -1,18 +1,41 @@
 # Smart Banking Support Agent
 
-A single LangChain agent coordinates four tools: EMI calculation, loan eligibility, masked account lookup, and loan application submission. The CLI accepts customer follow-up answers, asks for an exact `YES` before submission, and prints a consolidated final summary.
+A single LangChain agent coordinates four tools: EMI calculation, loan eligibility, masked account lookup, and loan application submission. The Streamlit UI uses OpenRouter for chat, accepts customer follow-up answers, and requires an explicit confirmation button before submission.
 
-## Run
+## Run locally
 
-From this directory, install the dependencies and configure an OpenAI API key:
+From this directory, install dependencies, configure the OpenRouter settings, and start Streamlit:
 
 ```bash
 python -m pip install -r requirements.txt
-export OPENAI_API_KEY="your-api-key"
-python banking_agent.py
+mkdir -p .streamlit
 ```
 
-The default model is `gpt-4o-mini`; override it with `OPENAI_MODEL` if needed. For the example request, the agent must ask for a customer ID before account lookup. The demo directory accepts `CUST1001` or `CUST1002`.
+Create `.streamlit/secrets.toml` with your OpenRouter key and a model ID that supports tool calling. Choose a currently available free model if you want to use OpenRouter's free options:
+
+```toml
+OPENROUTER_API_KEY = "your-openrouter-api-key"
+OPENROUTER_MODEL = "provider/model-name:free"
+```
+
+Then run:
+
+```bash
+streamlit run app.py
+```
+
+The example request is available in the sidebar. The agent asks for a customer ID before account lookup; the demo directory accepts `CUST1001` or `CUST1002`.
+
+## Deploy to Streamlit Community Cloud
+
+Deploy this folder's `app.py` as the app entry point. In the app's Streamlit Cloud settings, add these values under **Secrets**:
+
+```toml
+OPENROUTER_API_KEY = "your-openrouter-api-key"
+OPENROUTER_MODEL = "provider/model-name:free"
+```
+
+Do not commit `.streamlit/secrets.toml`. Free model availability, rate limits, and tool-calling support depend on OpenRouter's current catalog and provider limits.
 
 ## Demo policy and safety
 

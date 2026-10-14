@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 import sys
 import uuid
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 
@@ -50,7 +50,7 @@ def calculate_monthly_emi(
 
 @dataclass
 class BankingSession:
-    """In-memory demo banking state shared by tools and the CLI host."""
+    """In-memory demo banking state shared by tools and the host UI."""
 
     last_eligibility: dict[str, Any] | None = None
     account_details: dict[str, str] | None = None
@@ -138,11 +138,16 @@ class BankingSession:
         return self.application
 
     def authorize_submission(self) -> None:
-        """Grant one submission attempt after the CLI receives an exact YES."""
+        """Grant one submission attempt after host-side customer confirmation."""
         self.confirmation_authorized = True
 
 
-def create_banking_agent(session: BankingSession, model_name: str) -> Any:
+def create_banking_agent(
+    session: BankingSession,
+    model_name: str,
+    api_key: str | None = None,
+    base_url: str | None = None,
+) -> Any:
     """Create the LangChain agent and bind its tools to this session."""
     from langchain.agents import create_agent
     from langchain.tools import tool
@@ -188,7 +193,12 @@ def create_banking_agent(session: BankingSession, model_name: str) -> Any:
             customer_id, loan_amount, tenure_months
         )
 
-    model = ChatOpenAI(model=model_name, temperature=0)
+    model = ChatOpenAI(
+        model=model_name,
+        temperature=0,
+        api_key=api_key,
+        base_url=base_url,
+    )
     return create_agent(
         model=model,
         tools=[
