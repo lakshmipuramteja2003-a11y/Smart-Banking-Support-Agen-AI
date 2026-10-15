@@ -10,6 +10,7 @@ from typing import Any
 
 
 ANNUAL_INTEREST_RATE = 10.5
+OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 DEMO_ACCOUNTS = {
     "CUST1001": {
         "customer_name": "Aarav Sharma",
@@ -24,6 +25,23 @@ DEMO_ACCOUNTS = {
         "branch": "Bengaluru South",
     },
 }
+
+
+def resolve_ai_settings() -> tuple[str | None, str, str | None]:
+    """Return the active API credentials and model for the demo app.
+
+    Prefer OpenRouter environment keys because the app docs and Streamlit UI use
+    OpenRouter, while preserving compatibility with the older OpenAI environment
+    names used by the CLI example.
+    """
+    api_key = os.getenv("OPENROUTER_API_KEY") or os.getenv("OPENAI_API_KEY")
+    model_name = os.getenv("OPENROUTER_MODEL") or os.getenv("OPENAI_MODEL") or "gpt-4o-mini"
+    base_url = os.getenv("OPENROUTER_BASE_URL") or os.getenv("OPENAI_BASE_URL")
+    if api_key and base_url is None:
+        base_url = OPENROUTER_BASE_URL
+    elif not api_key:
+        base_url = None
+    return api_key, model_name, base_url
 
 
 def calculate_monthly_emi(
@@ -258,14 +276,22 @@ def _format_final_summary(session: BankingSession, declined: bool = False) -> st
 
 
 def main() -> int:
-    if not os.getenv("OPENAI_API_KEY"):
-        print("Set OPENAI_API_KEY before starting the LangChain agent.")
+    api_key, model_name, base_url = resolve_ai_settings()
+    if not api_key:
+        print(
+            "Set OPENROUTER_API_KEY (or OPENAI_API_KEY) before starting the "
+            "LangChain agent."
+        )
         return 1
 
     session = BankingSession()
-    model_name = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
     try:
-        agent = create_banking_agent(session, model_name)
+        agent = create_banking_agent(
+            session,
+            model_name,
+            api_key=api_key,
+            base_url=base_url,
+        )
     except ImportError as error:
         print(f"Missing agent dependency: {error}. Install this folder's requirements.txt.")
         return 1

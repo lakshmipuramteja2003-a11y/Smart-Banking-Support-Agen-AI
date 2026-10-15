@@ -1,9 +1,38 @@
+import os
 import unittest
+from unittest.mock import patch
 
-from banking_agent import BankingSession, calculate_monthly_emi
+from banking_agent import BankingSession, calculate_monthly_emi, resolve_ai_settings
 
 
 class BankingAgentTests(unittest.TestCase):
+    def test_resolve_ai_settings_prefers_openrouter(self):
+        with patch.dict(
+            os.environ,
+            {
+                "OPENROUTER_API_KEY": "or-key",
+                "OPENROUTER_MODEL": "openrouter/model:free",
+                "OPENROUTER_BASE_URL": "https://example.test/v1",
+                "OPENAI_API_KEY": "legacy-key",
+            },
+            clear=True,
+        ):
+            api_key, model_name, base_url = resolve_ai_settings()
+            self.assertEqual(api_key, "or-key")
+            self.assertEqual(model_name, "openrouter/model:free")
+            self.assertEqual(base_url, "https://example.test/v1")
+
+    def test_resolve_ai_settings_falls_back_to_legacy_openai_env(self):
+        with patch.dict(
+            os.environ,
+            {"OPENAI_API_KEY": "legacy-key", "OPENAI_MODEL": "gpt-4o-mini"},
+            clear=True,
+        ):
+            api_key, model_name, base_url = resolve_ai_settings()
+            self.assertEqual(api_key, "legacy-key")
+            self.assertEqual(model_name, "gpt-4o-mini")
+            self.assertEqual(base_url, "https://openrouter.ai/api/v1")
+
     def test_example_emi(self):
         emi = calculate_monthly_emi(500_000, 10.5, 36)
         self.assertAlmostEqual(emi, 16_251.0, delta=2)

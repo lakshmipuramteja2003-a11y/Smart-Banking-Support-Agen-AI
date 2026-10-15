@@ -58,11 +58,9 @@ def _invoke_agent(prompt: str) -> str:
 def _append_agent_turn(prompt: str) -> None:
     try:
         response = _invoke_agent(prompt)
-    except Exception:
-        response = (
-            "I couldn't complete that request. Check the OpenRouter API key, "
-            "model ID, and provider availability, then try again."
-        )
+    except Exception as error:
+        details = str(error).replace(api_key, "[redacted]") if api_key else str(error)
+        response = f"Request failed ({type(error).__name__}): {details}"
     st.session_state.chat_history.append({"role": "assistant", "content": response})
 
 
